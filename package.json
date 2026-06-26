@@ -1,0 +1,33 @@
+{
+  "name": "food-infrastructure",
+  "version": "1.0.0",
+  "description": "Infrastructure for food project",
+  "author": "David Bowland",
+  "engines": {
+    "node": "^24.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/davidbowland/food-infrastructure.git"
+  },
+  "bugs": {
+    "url": "https://github.com/davidbowland/food-infrastructure/issues"
+  },
+  "homepage": "https://github.com/davidbowland/food-infrastructure#readme",
+  "scripts": {
+    "deploy": "./deploy.sh",
+    "prepare": "husky",
+    "lint": "prettier --write .",
+    "update": "ncu --target minor --upgrade && npm audit fix --audit-level=none && npm dedupe"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.2",
+    "prettier": "^3.8.4"
+  },
+  "lint-staged": {
+    "**/*": [
+      "prettier --write --ignore-unknown"
+    ]
+  }
+}

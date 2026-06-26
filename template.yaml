@@ -1,0 +1,191 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  Infrastructure for dbowland.com food project
+
+Parameters:
+  Environment:
+    Type: String
+    Default: prod
+    AllowedValues:
+      - prod
+      - test
+    Description: Environment for deploy
+
+Mappings:
+  EnvironmentMap:
+    prod:
+      lambdaBucketName: food-lambda
+      project: food
+      roleNameCloudFormation: food-cloudformation
+      roleNamePipeline: food-pipeline
+    test:
+      lambdaBucketName: food-lambda-test
+      project: food-test
+      roleNameCloudFormation: food-cloudformation-test
+      roleNamePipeline: food-pipeline-test
+
+Resources:
+  # Deployment storage
+
+  LambdaBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: Private
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - BucketKeyEnabled: false
+            ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      BucketName: !FindInMap [EnvironmentMap, !Ref Environment, lambdaBucketName]
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: 'created-by'
+          Value: 'food-infrastructure'
+        - Key: 'created-for'
+          Value: 'food'
+        - Key: 'environment'
+          Value: !Ref Environment
+
+  # Deployment roles
+
+  CloudFormationRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - cloudformation.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Policies:
+        - PolicyName: !Sub
+            - '${Project}-cloudformation'
+            - Project: !FindInMap [EnvironmentMap, !Ref Environment, project]
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                NotAction:
+                  - 'iam:*User'
+                  - 'organizations:*'
+                  - 'account:*'
+                Resource: '*'
+      RoleName: !FindInMap [EnvironmentMap, !Ref Environment, roleNameCloudFormation]
+      Tags:
+        - Key: 'created-by'
+          Value: 'food-infrastructure'
+        - Key: 'created-for'
+          Value: 'food'
+        - Key: 'environment'
+          Value: !Ref Environment
+
+  PipelineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Sub '${AWS::AccountId}'
+            Action: 'sts:AssumeRole'
+      Policies:
+        - PolicyName: !Sub
+            - '${Project}-pipeline'
+            - Project: !FindInMap [EnvironmentMap, !Ref Environment, project]
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: 'iam:PassRole'
+                Resource: !Sub '${CloudFormationRole.Arn}'
+              - Effect: Allow
+                Action: 'cloudformation:*'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 's3:DeleteObject'
+                  - 's3:GetObject*'
+                  - 's3:PutObject*'
+                  - 's3:GetBucket*'
+                  - 's3:List*'
+                Resource:
+                  - 'arn:aws:s3:::food-ui/*'
+                  - 'arn:aws:s3:::food-ui'
+                  - 'arn:aws:s3:::food-ui-test/*'
+                  - 'arn:aws:s3:::food-ui-test'
+                  - !Sub 'arn:aws:s3:::${LambdaBucket}/*'
+                  - !Sub 'arn:aws:s3:::${LambdaBucket}'
+              - Effect: Allow
+                Action:
+                  - 'dynamodb:PutItem'
+                  - 'dynamodb:DescribeTable'
+                  - 'dynamodb:DeleteItem'
+                  - 'dynamodb:GetItem'
+                  - 'dynamodb:Scan'
+                  - 'dynamodb:Query'
+                Resource:
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/food-api-prompts'
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/food-api-prompts-test'
+      RoleName: !FindInMap [EnvironmentMap, !Ref Environment, roleNamePipeline]
+      Tags:
+        - Key: 'created-by'
+          Value: 'food-infrastructure'
+        - Key: 'created-for'
+          Value: 'food'
+        - Key: 'environment'
+          Value: !Ref Environment
+
+  # Deployment users
+
+  foodApiUser:
+    Type: AWS::IAM::User
+    Properties:
+      Policies:
+        - PolicyName: !Sub
+            - '${Project}-pipeline'
+            - Project: !FindInMap [EnvironmentMap, !Ref Environment, project]
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: 'sts:AssumeRole'
+                Resource:
+                  - !Sub 'arn:aws:iam::${AWS::AccountId}:role/food-pipeline'
+                  - !Sub 'arn:aws:iam::${AWS::AccountId}:role/food-pipeline-test'
+      Tags:
+        - Key: 'created-by'
+          Value: 'food-infrastructure'
+        - Key: 'created-for'
+          Value: 'food'
+        - Key: 'environment'
+          Value: !Ref Environment
+
+  UiUser:
+    Type: AWS::IAM::User
+    Properties:
+      Policies:
+        - PolicyName: !Sub
+            - '${Project}-pipeline'
+            - Project: !FindInMap [EnvironmentMap, !Ref Environment, project]
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: 'sts:AssumeRole'
+                Resource:
+                  - !Sub 'arn:aws:iam::${AWS::AccountId}:role/food-pipeline'
+                  - !Sub 'arn:aws:iam::${AWS::AccountId}:role/food-pipeline-test'
+      Tags:
+        - Key: 'created-by'
+          Value: 'food-infrastructure'
+        - Key: 'created-for'
+          Value: 'food'
+        - Key: 'environment'
+          Value: !Ref Environment
