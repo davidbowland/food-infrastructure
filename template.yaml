@@ -157,8 +157,8 @@ Resources:
               - Effect: Allow
                 Action: 'sts:AssumeRole'
                 Resource:
-                  - !Sub 'arn:aws:iam::${AWS::AccountId}:role/food-pipeline'
-                  - !Sub 'arn:aws:iam::${AWS::AccountId}:role/food-pipeline-test'
+                  - !Sub 'arn:aws:iam::${AWS::AccountId}:role/food-api-pipeline'
+                  - !Sub 'arn:aws:iam::${AWS::AccountId}:role/food-api-pipeline-test'
       Tags:
         - Key: 'created-by'
           Value: 'food-infrastructure'
@@ -180,8 +180,8 @@ Resources:
               - Effect: Allow
                 Action: 'sts:AssumeRole'
                 Resource:
-                  - !Sub 'arn:aws:iam::${AWS::AccountId}:role/food-pipeline'
-                  - !Sub 'arn:aws:iam::${AWS::AccountId}:role/food-pipeline-test'
+                  - !Sub 'arn:aws:iam::${AWS::AccountId}:role/food-api-pipeline'
+                  - !Sub 'arn:aws:iam::${AWS::AccountId}:role/food-api-pipeline-test'
       Tags:
         - Key: 'created-by'
           Value: 'food-infrastructure'
